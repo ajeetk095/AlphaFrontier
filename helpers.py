@@ -1,9 +1,10 @@
-"""Shared Streamlit helpers: cached data access, windows, layout, sidebar, teaching widgets."""
+"""Shared Streamlit helpers: cached data access, layout, sidebar, and teaching widgets."""
 from __future__ import annotations
 
 from datetime import date, timedelta
 
 import pandas as pd
+import plotly.io as pio
 import streamlit as st
 
 from core import data as D
@@ -15,127 +16,72 @@ REPORT_WINDOWS = {
     "test": (date(2025, 7, 1), date(2025, 9, 30)),
 }
 
+# A dark-first design system shared by the landing page and every multipage view.
 CSS = """
 <style>
-.block-container{padding-top:2rem;padding-bottom:3rem;max-width:1280px}
-[data-testid="stMetricValue"]{font-size:1.55rem;font-weight:700}
-.pl-hero{position:relative;overflow:hidden;padding:1.7rem 1.8rem;border-radius:22px;
-  background:linear-gradient(120deg,rgba(14,165,233,.20),rgba(99,102,241,.18) 52%,rgba(16,185,129,.16));
-  border:1px solid rgba(99,102,241,.28);margin:0 0 1.35rem;box-shadow:0 14px 40px rgba(15,23,42,.08)}
-.pl-hero:after{content:"";position:absolute;width:220px;height:220px;right:-70px;top:-110px;border-radius:50%;
-  background:radial-gradient(circle,rgba(56,189,248,.26),transparent 70%);pointer-events:none}
-.pl-hero h1{margin:0 0 .45rem;font-size:clamp(2rem,4vw,3rem);letter-spacing:-.04em}
-.pl-hero b{font-size:1.04rem}
-.pl-card{padding:1.1rem 1.15rem;border-radius:17px;border:1px solid rgba(99,102,241,.22);
-  background:linear-gradient(145deg,rgba(99,102,241,.10),rgba(14,165,233,.055));height:100%;
-  line-height:1.55;box-shadow:0 8px 24px rgba(15,23,42,.055);transition:transform .18s ease,border-color .18s ease}
-.pl-card:hover{transform:translateY(-3px);border-color:rgba(14,165,233,.52)}
-.pl-card b{font-size:1.02rem}
-.pl-pill{display:inline-block;padding:.18rem .68rem;border-radius:999px;font-size:.8rem;border:1px solid rgba(99,102,241,.35);margin-right:.3rem}
-[data-testid="stMetric"]{padding:.8rem 1rem;border-radius:16px;border:1px solid rgba(99,102,241,.17);
-  background:linear-gradient(145deg,rgba(99,102,241,.075),rgba(14,165,233,.045))}
-[data-testid="stMetricLabel"]{font-weight:600}
-[data-testid="stTabs"] button{font-weight:600}
-[data-testid="stDataFrame"], [data-testid="stTable"]{border-radius:12px;overflow:hidden}
-[data-testid="stExpander"]{border-radius:14px}
+:root{color-scheme:dark;--pl-bg:#080d19;--pl-panel:#111a2b;--pl-panel-raised:#17233a;--pl-border:#273650;
+  --pl-text:#e8eefb;--pl-muted:#9aabc4;--pl-indigo:#8b83ff;--pl-cyan:#48d9e8;--pl-green:#38d9a9}
+.stApp{background:radial-gradient(ellipse at 2% 0%,rgba(28,114,170,.20),transparent 34%),
+  radial-gradient(ellipse at 98% 4%,rgba(107,73,190,.18),transparent 32%),var(--pl-bg);color:var(--pl-text)}
+[data-testid="stAppViewContainer"],section[data-testid="stMain"]{background:transparent}
+.block-container{width:min(100% - 2rem,1440px);max-width:1440px;padding:1.35rem 1rem 3.2rem}
+[data-testid="stHeader"]{background:rgba(8,13,25,.82);backdrop-filter:blur(14px)}
+[data-testid="stSidebar"]{background:linear-gradient(180deg,#101a2c,#15152b 72%,#102329);border-right:1px solid var(--pl-border)}
+.stApp :is(h1,h2,h3,h4,h5,h6,p,li,label,small,[data-testid="stMarkdownContainer"]){color:var(--pl-text)}
+.stApp [data-testid="stCaptionContainer"],.stApp .stCaption{color:var(--pl-muted)}
+.stApp a{color:#7edff5}.stApp a:hover{color:#c3a9ff}
+.stApp input,.stApp textarea,[data-baseweb="select"]>div,[data-baseweb="input"]>div{
+  color:var(--pl-text)!important;background:#101a2b!important;border-color:#34445f!important;border-radius:11px!important}
+.stApp input::placeholder,.stApp textarea::placeholder{color:#8b9bb3!important}
+.stApp [role="listbox"],.stApp [role="option"]{background:#121d30;color:var(--pl-text)}
+[data-testid="stMetric"]{height:100%;padding:.9rem 1rem;border-radius:17px;border:1px solid rgba(139,131,255,.25);
+  background:linear-gradient(145deg,rgba(92,88,190,.18),rgba(17,26,43,.86));box-shadow:0 10px 28px rgba(0,0,0,.16)}
+[data-testid="stMetricLabel"]{color:#b6c4d9;font-weight:650}[data-testid="stMetricValue"]{color:#d8d1ff;font-size:clamp(1.25rem,3vw,1.8rem);font-weight:750}
+[data-testid="stMetricDelta"]{color:#7de6bd}
+.pl-hero{position:relative;isolation:isolate;overflow:hidden;padding:clamp(1.35rem,4vw,2.7rem);border-radius:26px;
+  background:linear-gradient(115deg,rgba(28,166,196,.20),rgba(93,78,190,.25) 55%,rgba(18,143,124,.15));
+  border:1px solid rgba(139,131,255,.36);margin:0 0 1.4rem;box-shadow:0 20px 60px rgba(0,0,0,.24)}
+.pl-hero:after{content:"";position:absolute;z-index:-1;width:290px;height:290px;right:-80px;top:-145px;border-radius:50%;
+  background:radial-gradient(circle,rgba(72,217,232,.28),transparent 70%);pointer-events:none}
+.pl-hero h1{margin:0 0 .55rem;font-size:clamp(2rem,6vw,3.55rem);letter-spacing:-.045em;line-height:1.08}
+.pl-hero b{font-size:clamp(1rem,2.4vw,1.15rem);line-height:1.55}.pl-hero p{color:#bdcbe1}
+.pl-card{height:100%;min-height:145px;padding:1.15rem;border-radius:18px;border:1px solid rgba(139,131,255,.23);
+  background:linear-gradient(145deg,rgba(83,77,165,.18),rgba(17,26,43,.90));line-height:1.6;
+  box-shadow:0 12px 30px rgba(0,0,0,.16);transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+.pl-card:hover{transform:translateY(-3px);border-color:rgba(72,217,232,.62);box-shadow:0 16px 34px rgba(21,177,200,.12)}
+.pl-card b{font-size:1.04rem;color:#f1efff}.pl-card span{color:#b6c4d9}
 .stButton button,.stDownloadButton button,.stLinkButton a,[data-testid="stPageLink"] a{
-  border-radius:11px!important;font-weight:650!important;transition:all .18s ease!important}
+  min-height:2.65rem;border-radius:12px!important;font-weight:700!important;transition:all .18s ease!important}
 .stButton button:hover,.stDownloadButton button:hover,.stLinkButton a:hover,[data-testid="stPageLink"] a:hover{
-  transform:translateY(-1px);border-color:#38bdf8!important;box-shadow:0 5px 16px rgba(14,165,233,.18)!important}
-[data-testid="stSidebar"]{border-right:1px solid rgba(99,102,241,.15)}
-[data-testid="stHeader"]{backdrop-filter:blur(12px)}
-@media (max-width:700px){.pl-hero{padding:1.25rem;border-radius:17px}.pl-card{margin-bottom:.4rem}}
+  transform:translateY(-1px);border-color:var(--pl-cyan)!important;box-shadow:0 6px 20px rgba(72,217,232,.16)!important}
+[data-testid="stTabs"] button{font-weight:650;color:#aab8cf}
+[data-testid="stTabs"] button[aria-selected="true"]{color:#c8c0ff;border-color:var(--pl-indigo)}
+[data-testid="stDataFrame"],[data-testid="stTable"]{border:1px solid var(--pl-border);border-radius:13px;overflow:auto;background:#0f1828}
+[data-testid="stExpander"],[data-testid="stAlert"]{border-radius:15px;border-color:var(--pl-border);background:rgba(17,26,43,.88);color:var(--pl-text)}
+[data-testid="stAlert"] :is(p,span){color:inherit}
+[data-testid="stPlotlyChart"]{background:transparent}
+.stApp hr{border-color:var(--pl-border)}
+@media (max-width:760px){
+  .block-container{width:100%;padding:.85rem .75rem 2rem}
+  [data-testid="stHorizontalBlock"]{flex-direction:column;gap:.65rem}
+  [data-testid="stHorizontalBlock"]>[data-testid="column"]{width:100%!important;flex:1 1 100%!important;min-width:100%!important}
+  .pl-hero{border-radius:20px;margin-bottom:1rem}.pl-card{min-height:0;margin-bottom:.25rem}
+  [data-testid="stMetric"]{padding:.75rem .85rem}
+  [data-testid="stTabs"] [role="tablist"]{gap:.15rem;overflow-x:auto;flex-wrap:nowrap}
+  [data-testid="stTabs"] button{white-space:nowrap;font-size:.85rem}
+  .stButton button,.stDownloadButton button,.stLinkButton a{width:100%}
+  [data-testid="stDataFrame"]{max-width:100%;overflow-x:auto}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 </style>
 """
-
-LIGHT_THEME_CSS = """
-<style>
-.stApp{background:radial-gradient(ellipse at 5% 0%,rgba(14,165,233,.075),transparent 34%),
-  radial-gradient(ellipse at 95% 8%,rgba(139,92,246,.07),transparent 30%),#f7f9ff;color:#172033}
-[data-testid="stAppViewContainer"]{background:transparent}
-[data-testid="stSidebar"]{background:linear-gradient(180deg,#f0f5ff 0%,#f8f7ff 55%,#f0fbfa 100%);color:#172033}
-[data-testid="stHeader"]{background:rgba(247,249,255,.82)}
-.stApp :is(h1,h2,h3,h4,h5,h6,p,li,label,small,.stMarkdown,.stCaption,[data-testid="stMarkdownContainer"]){color:#172033}
-.stApp [data-testid="stCaptionContainer"],.stApp .stCaption{color:#53627a}
-.stApp a{color:#4f46e5}
-.stApp a:hover{color:#0284c7}
-.stApp input,.stApp textarea,[data-baseweb="select"]>div,[data-baseweb="input"]>div{
-  background:#fff!important;color:#172033!important;border-color:#cbd5e1!important;border-radius:10px!important}
-.stApp input::placeholder,.stApp textarea::placeholder{color:#64748b!important}
-.stApp [role="listbox"],.stApp [role="option"]{background:#fff;color:#172033}
-.stApp [data-testid="stExpander"],.stApp [data-testid="stAlert"]{background:rgba(255,255,255,.82);border-color:#dbe4f0;color:#172033}
-.stApp [data-testid="stAlert"] :is(p,span){color:inherit}
-.stApp [data-testid="stMetricLabel"]{color:#53627a}
-.stApp [data-testid="stMetricValue"]{color:#312e81}
-.stApp [data-testid="stMetricDelta"]{color:#047857}
-.stApp .stButton button,.stApp .stDownloadButton button,.stApp .stLinkButton a,.stApp [data-testid="stPageLink"] a{
-  background:linear-gradient(135deg,#4f46e5,#2563eb)!important;color:#fff!important;border:1px solid #4f46e5!important}
-.stApp .stButton button *, .stApp .stDownloadButton button *,.stApp .stLinkButton a *{color:#fff!important}
-.stApp [data-testid="stPageLink"] a{display:inline-flex}
-.stApp [data-testid="stTabs"] button{color:#53627a}
-.stApp [data-testid="stTabs"] button[aria-selected="true"]{color:#4338ca;border-color:#6366f1}
-.stApp [data-testid="stDataFrame"],.stApp [data-testid="stTable"]{background:#fff}
-.stApp [data-testid="stPlotlyChart"]{background:transparent}
-.stApp hr{border-color:#dbe4f0}
-</style>
-"""
-
-DARK_THEME_CSS = """
-<style>
-.stApp{background:radial-gradient(ellipse at 5% 0%,rgba(14,165,233,.13),transparent 35%),
-  radial-gradient(ellipse at 95% 10%,rgba(139,92,246,.13),transparent 32%),#0b1020;color:#e6edf7}
-[data-testid="stAppViewContainer"]{background:transparent}
-[data-testid="stSidebar"]{background:linear-gradient(180deg,#101a31 0%,#17152f 58%,#102427 100%);color:#e6edf7;border-right:1px solid rgba(129,140,248,.18)}
-[data-testid="stHeader"]{background:rgba(11,16,32,.78)}
-.stApp :is(h1,h2,h3,h4,h5,h6,p,li,label,small,.stMarkdown,.stCaption,[data-testid="stMarkdownContainer"]){color:#e6edf7}
-.stApp [data-testid="stCaptionContainer"],.stApp .stCaption{color:#aab8cf}
-.stApp a{color:#7dd3fc}
-.stApp a:hover{color:#c4b5fd}
-.stApp input,.stApp textarea,[data-baseweb="select"]>div,[data-baseweb="input"]>div{
-  background:#172238!important;color:#f1f5f9!important;border-color:#34435e!important;border-radius:10px!important}
-.stApp input::placeholder,.stApp textarea::placeholder{color:#94a3b8!important}
-.stApp [role="listbox"],.stApp [role="option"]{background:#172238;color:#f1f5f9}
-.stApp [data-testid="stExpander"],.stApp [data-testid="stAlert"]{background:rgba(23,34,56,.88);border-color:#34435e;color:#e6edf7}
-.stApp [data-testid="stAlert"] :is(p,span){color:inherit}
-.stApp [data-testid="stMetric"]{background:linear-gradient(145deg,rgba(99,102,241,.17),rgba(14,165,233,.09));border-color:rgba(129,140,248,.28)}
-.stApp [data-testid="stMetricLabel"]{color:#b8c5d9}
-.stApp [data-testid="stMetricValue"]{color:#c4b5fd}
-.stApp [data-testid="stMetricDelta"]{color:#6ee7b7}
-.stApp .pl-hero{background:linear-gradient(120deg,rgba(14,165,233,.20),rgba(99,102,241,.25) 52%,rgba(16,185,129,.16));border-color:rgba(129,140,248,.35);box-shadow:0 14px 40px rgba(0,0,0,.2)}
-.stApp .pl-card{background:linear-gradient(145deg,rgba(99,102,241,.17),rgba(14,165,233,.08));border-color:rgba(129,140,248,.25);box-shadow:0 8px 24px rgba(0,0,0,.16)}
-.stApp .pl-pill{border-color:rgba(129,140,248,.42);color:#dbeafe}
-.stApp .stButton button,.stApp .stDownloadButton button,.stApp .stLinkButton a,.stApp [data-testid="stPageLink"] a{
-  background:linear-gradient(135deg,#6366f1,#0284c7)!important;color:#fff!important;border:1px solid #818cf8!important}
-.stApp .stButton button *, .stApp .stDownloadButton button *,.stApp .stLinkButton a *{color:#fff!important}
-.stApp [data-testid="stPageLink"] a{display:inline-flex}
-.stApp [data-testid="stTabs"] button{color:#aab8cf}
-.stApp [data-testid="stTabs"] button[aria-selected="true"]{color:#c4b5fd;border-color:#818cf8}
-.stApp [data-testid="stDataFrame"],.stApp [data-testid="stTable"]{background:#111a2d}
-.stApp [data-testid="stPlotlyChart"]{background:transparent}
-.stApp hr{border-color:#293750}
-</style>
-"""
-
-
-def _save_appearance():
-    """Keep the chosen theme outside the page-scoped widget state."""
-    st.session_state["app_appearance"] = st.session_state["_appearance_selector"]
 
 
 def page_setup(title: str, icon: str = "📈"):
-    st.set_page_config(page_title=f"{title} · Portfolio Lab", page_icon=icon, layout="wide")
-    # Streamlit resets page-scoped widgets during navigation. Keep the actual
-    # preference in a separate session-state key and seed the widget per page.
-    st.session_state.setdefault("app_appearance", "Light")
-    st.session_state["_appearance_selector"] = st.session_state["app_appearance"]
-    st.sidebar.selectbox(
-        "Appearance",
-        ("Light", "Dark"),
-        key="_appearance_selector",
-        on_change=_save_appearance,
-    )
-    theme_css = DARK_THEME_CSS if st.session_state["app_appearance"] == "Dark" else LIGHT_THEME_CSS
-    st.markdown(CSS + theme_css, unsafe_allow_html=True)
+    st.set_page_config(page_title=f"{title} · AlphaFrontier", page_icon=icon, layout="wide")
+    # Transparent plot backgrounds inherit the accessible dark app palette.
+    pio.templates.default = "plotly_dark"
+    st.markdown(CSS, unsafe_allow_html=True)
 
 
 def footer():
@@ -280,7 +226,7 @@ def quiz(key: str, items: list[tuple], title: str = "Check your understanding"):
 
 
 def sidebar_controls(key: str = "main", default_cap: float = 0.15, window: bool = True):
-    """Shared sidebar. Returns config dict. Syncs tickers/cap to the URL so results are shareable."""
+    """Shared sidebar. Syncs tickers/cap to the URL so results are shareable."""
     sb = st.sidebar
     sb.header("Settings")
     prof = st.session_state.get("profile")
