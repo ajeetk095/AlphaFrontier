@@ -54,10 +54,24 @@ DARK_THEME_CSS = """
 """
 
 
+def _save_appearance():
+    """Keep the chosen theme outside the page-scoped widget state."""
+    st.session_state["app_appearance"] = st.session_state["_appearance_selector"]
+
+
 def page_setup(title: str, icon: str = "📈"):
     st.set_page_config(page_title=f"{title} · Portfolio Lab", page_icon=icon, layout="wide")
-    st.sidebar.selectbox("Appearance", ("Light", "Dark"), key="appearance")
-    theme_css = DARK_THEME_CSS if st.session_state.appearance == "Dark" else LIGHT_THEME_CSS
+    # Streamlit resets page-scoped widgets during navigation. Keep the actual
+    # preference in a separate session-state key and seed the widget per page.
+    st.session_state.setdefault("app_appearance", "Light")
+    st.session_state["_appearance_selector"] = st.session_state["app_appearance"]
+    st.sidebar.selectbox(
+        "Appearance",
+        ("Light", "Dark"),
+        key="_appearance_selector",
+        on_change=_save_appearance,
+    )
+    theme_css = DARK_THEME_CSS if st.session_state["app_appearance"] == "Dark" else LIGHT_THEME_CSS
     st.markdown(CSS + theme_css, unsafe_allow_html=True)
 
 
