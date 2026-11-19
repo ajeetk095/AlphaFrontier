@@ -9,3 +9,4 @@ plotly>=5.20
 yfinance>=0.2.50
 requests>=2.31
 reportlab>=4.0
+matplotlib>=3.8
