@@ -1,0 +1,14 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11", cache: pip }
+      - run: pip install -r requirements-dev.txt
+      - run: ruff check .
+      - run: pytest -q --cov=core --cov=api --cov-report=term --cov-report=xml
+      - name: Coverage summary
+        run: python -c "import xml.etree.ElementTree as E;r=E.parse('coverage.xml').getroot();print('Coverage: %.0f%%'%(float(r.get('line-rate'))*100))" >> $GITHUB_STEP_SUMMARY
