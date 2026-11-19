@@ -27,10 +27,38 @@ div[data-testid='stMetricValue']{font-size:1.55rem}
 </style>
 """
 
+LIGHT_THEME_CSS = """
+<style>
+.stApp{background-color:#ffffff;color:#262730}
+[data-testid="stSidebar"]{background-color:#f0f2f6}
+[data-testid="stHeader"]{background-color:rgba(255,255,255,.9)}
+.stApp :is(h1,h2,h3,h4,h5,h6,p,li,label,small,.stMarkdown,.stCaption){color:#262730}
+.stApp a{color:#2563eb}
+.stApp input,.stApp textarea,[data-baseweb="select"]>div,[data-baseweb="input"]>div{background-color:#ffffff;color:#262730}
+[data-testid="stExpander"],[data-testid="stAlert"]{background-color:#ffffff}
+</style>
+"""
+
+DARK_THEME_CSS = """
+<style>
+.stApp{background-color:#0e1117;color:#fafafa}
+[data-testid="stSidebar"]{background-color:#161b22}
+[data-testid="stHeader"]{background-color:rgba(14,17,23,.9)}
+.stApp :is(h1,h2,h3,h4,h5,h6,p,li,label,small,.stMarkdown,.stCaption){color:#fafafa}
+.stApp a{color:#79aaff}
+.stApp input,.stApp textarea,[data-baseweb="select"]>div,[data-baseweb="input"]>div{background-color:#222831;color:#fafafa}
+[data-testid="stExpander"],[data-testid="stAlert"]{background-color:#161b22;color:#fafafa}
+[data-testid="stMetric"]{background-color:rgba(255,255,255,.04);border-radius:8px;padding:.5rem}
+[data-testid="stPlotlyChart"]{background-color:transparent}
+</style>
+"""
+
 
 def page_setup(title: str, icon: str = "📈"):
     st.set_page_config(page_title=f"{title} · Portfolio Lab", page_icon=icon, layout="wide")
-    st.markdown(CSS, unsafe_allow_html=True)
+    st.sidebar.selectbox("Appearance", ("Light", "Dark"), key="appearance")
+    theme_css = DARK_THEME_CSS if st.session_state.appearance == "Dark" else LIGHT_THEME_CSS
+    st.markdown(CSS + theme_css, unsafe_allow_html=True)
 
 
 def footer():
