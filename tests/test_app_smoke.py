@@ -1,4 +1,4 @@
-"""Headless smoke tests: every page renders in demo mode without exceptions."""
+"""Headless smoke tests: every Streamlit page renders in demo mode without exceptions."""
 from pathlib import Path
 
 import pytest
@@ -13,7 +13,7 @@ PAGES = [
     "pages/6_Model_Comparison.py",
     "pages/7_Factor_Analysis.py",
     "pages/9_Report_and_Methodology.py",
-    "pages/10_About_and_Hire.py",
+    "pages/10_About the Developer.py",
 ]
 
 

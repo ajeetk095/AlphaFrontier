@@ -7,33 +7,56 @@ from typing import Literal
 import numpy as np
 import pandas as pd
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, FiniteFloat, model_validator
 
 from core import data as D
 from core.models import MODELS
 from core.optimize import InfeasibleError, annualised_inputs, max_sharpe, min_variance, portfolio_stats
+
+MAX_ASSETS = 30
 
 app = FastAPI(title="Portfolio Lab API", version="1.0.0",
               description="Educational portfolio-construction endpoints. Not investment advice.")
 
 
 class OptimizeRequest(BaseModel):
-    tickers: list[str] = Field(..., min_length=3, max_length=30, examples=[["AAPL", "XOM", "WMT", "BAC"]])
-    years: float = Field(2.0, ge=0.5, le=10)
+    tickers: list[str] = Field(..., min_length=3, max_length=MAX_ASSETS, examples=[["AAPL", "XOM", "WMT", "BAC"]])
+    years: FiniteFloat = Field(2.0, ge=0.5, le=10)
     model: Literal["Max Sharpe", "Min variance", "Risk parity", "HRP", "Min CVaR", "Equal weight (1/N)"] = "Max Sharpe"
-    cap: float = Field(1.0, ge=0.02, le=1.0)
-    shrink: float = Field(0.0, ge=0, le=1)
+    cap: FiniteFloat = Field(1.0, ge=0.02, le=1.0)
+    shrink: FiniteFloat = Field(0.0, ge=0, le=1)
     ledoit_wolf: bool = False
-    rf: float | None = Field(None, description="Annual risk-free rate; defaults to the live 13-week T-bill average.")
+    rf: FiniteFloat | None = Field(None, description="Annual risk-free rate; defaults to the live 13-week T-bill average.")
+
+    @model_validator(mode="after")
+    def tickers_are_unique(self):
+        normalized = [ticker.strip().upper() for ticker in self.tickers]
+        if any(not ticker for ticker in normalized):
+            raise ValueError("Tickers must not be blank.")
+        if len(set(normalized)) != len(normalized):
+            raise ValueError("Tickers must be unique (case-insensitive).")
+        self.tickers = normalized
+        return self
 
 
 class MomentsRequest(BaseModel):
-    names: list[str]
-    mu: list[float]
-    cov: list[list[float]]
-    rf: float = 0.04
-    cap: float = Field(1.0, ge=0.02, le=1.0)
+    names: list[str] = Field(..., min_length=3, max_length=MAX_ASSETS)
+    mu: list[FiniteFloat] = Field(..., min_length=3, max_length=MAX_ASSETS)
+    cov: list[list[FiniteFloat]] = Field(..., min_length=3, max_length=MAX_ASSETS)
+    rf: FiniteFloat = 0.04
+    cap: FiniteFloat = Field(1.0, ge=0.02, le=1.0)
     objective: Literal["max_sharpe", "min_variance"] = "max_sharpe"
+
+    @model_validator(mode="after")
+    def validate_dimensions_and_names(self):
+        n = len(self.names)
+        if len(self.mu) != n or len(self.cov) != n or any(len(row) != n for row in self.cov):
+            raise ValueError("Dimensions of names, mu and cov must agree; cov must be square.")
+        if any(not name.strip() for name in self.names):
+            raise ValueError("Asset names must not be blank.")
+        if len(set(self.names)) != n:
+            raise ValueError("Asset names must be unique.")
+        return self
 
 
 def _stats_dict(w: pd.Series, mu: pd.Series, cov: pd.DataFrame, rf: float) -> dict:
@@ -53,14 +76,13 @@ def models():
 
 @app.post("/optimize")
 def optimize(req: OptimizeRequest):
-    tickers = [t.upper() for t in req.tickers]
     end = date.today()
     start = end - timedelta(days=int(365 * req.years))
     try:
-        prices, source, as_of = D.get_prices(tickers, start, end)
+        prices, source, as_of = D.get_prices(req.tickers, start, end)
     except D.DataError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
-    rets = prices.pct_change().dropna()
+    rets = prices.pct_change().replace([np.inf, -np.inf], np.nan).dropna()
     if len(rets) < 60:
         raise HTTPException(status_code=422, detail="Not enough overlapping history for these tickers.")
     rf = req.rf if req.rf is not None else D.fetch_rf_annual(start, end)[0]
@@ -76,13 +98,16 @@ def optimize(req: OptimizeRequest):
 @app.post("/optimize/from-moments")
 def optimize_from_moments(req: MomentsRequest):
     """Pure maths: supply your own expected returns and covariance (annualised)."""
-    n = len(req.names)
-    if len(req.mu) != n or len(req.cov) != n or any(len(r) != n for r in req.cov):
-        raise HTTPException(status_code=422, detail="Dimensions of names, mu and cov must agree.")
     mu = pd.Series(req.mu, index=req.names)
-    cov = pd.DataFrame(np.array(req.cov), index=req.names, columns=req.names)
-    if not np.allclose(cov.values, cov.values.T, atol=1e-10) or np.linalg.eigvalsh(cov.values).min() < -1e-10:
+    cov_values = np.asarray(req.cov, dtype=float)
+    if not np.allclose(cov_values, cov_values.T, atol=1e-10):
         raise HTTPException(status_code=422, detail="cov must be symmetric positive semi-definite.")
+    try:
+        if np.linalg.eigvalsh(cov_values).min() < -1e-10:
+            raise HTTPException(status_code=422, detail="cov must be symmetric positive semi-definite.")
+    except np.linalg.LinAlgError as exc:
+        raise HTTPException(status_code=422, detail="cov must be a valid positive semi-definite matrix.") from exc
+    cov = pd.DataFrame(cov_values, index=req.names, columns=req.names)
     try:
         w = max_sharpe(mu, cov, req.rf, req.cap) if req.objective == "max_sharpe" else min_variance(mu, cov, req.cap)
     except InfeasibleError as exc:

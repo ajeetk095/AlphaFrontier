@@ -11,6 +11,9 @@ from core.optimize import annualised_inputs, max_sharpe
 from core.pdf_report import build_pdf
 
 
+client = TestClient(app)
+
+
 def test_retry_then_success(monkeypatch):
     calls = {"n": 0}
     monkeypatch.setattr(D.time, "sleep", lambda s: None)
@@ -64,9 +67,6 @@ def test_pdf_builds():
     assert out.startswith(b"%PDF") and len(out) > 1000
 
 
-client = TestClient(app)
-
-
 def test_api_health_models():
     assert client.get("/health").json() == {"status": "ok"}
     assert "HRP" in client.get("/models").json()["models"]
@@ -85,6 +85,14 @@ def test_api_from_moments():
     assert asym.status_code == 422
 
 
+def test_api_from_moments_rejects_bad_dimensions_nonfinite_and_duplicates():
+    body = {"names": ["A", "B", "C"], "mu": [0.1, 0.08, 0.06],
+            "cov": [[0.04, 0.0, 0.0], [0.0, 0.03, 0.0], [0.0, 0.0, 0.02]]}
+    assert client.post("/optimize/from-moments", json={**body, "names": ["A", "A", "C"]}).status_code == 422
+    assert client.post("/optimize/from-moments", json={**body, "mu": [0.1, float("nan"), 0.06]}).status_code == 422
+    assert client.post("/optimize/from-moments", json={**body, "cov": [[0.04, 0.0], [0.0, 0.03]]}).status_code == 422
+
+
 def test_api_optimize_uses_data_layer(monkeypatch):
     prices, _, _ = D.make_demo_data(["AAPL", "XOM", "WMT", "BAC"], "2023-01-02", "2025-06-30")
     monkeypatch.setattr(D, "get_prices", lambda *a, **k: (prices, "snapshot", prices.index.max()))
@@ -93,3 +101,5 @@ def test_api_optimize_uses_data_layer(monkeypatch):
     assert r.status_code == 200, r.text
     assert r.json()["data_source"] == "snapshot"
     assert client.post("/optimize", json={"tickers": ["A", "B"]}).status_code == 422
+    assert client.post("/optimize", json={"tickers": ["aapl", "AAPL", "WMT"]}).status_code == 422
+    assert client.post("/optimize", json={"tickers": ["A", "B", "C"], "years": float("inf")}).status_code == 422

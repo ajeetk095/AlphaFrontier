@@ -91,6 +91,16 @@ def test_scenarios_shape(market):
     assert sc["p05"] <= sc["p50"] <= sc["p95"]
 
 
+def test_scenarios_allow_short_samples_and_validate_inputs():
+    short = pd.Series([0.01, -0.02])
+    result = scenario_paths(short, horizon=12, n_paths=20, block=5, seed=3)
+    assert result["paths"].shape == (20, 12)
+    with pytest.raises(ValueError, match="At least one finite return"):
+        scenario_paths(pd.Series([np.nan]))
+    with pytest.raises(ValueError, match="positive integers"):
+        scenario_paths(short, horizon=0)
+
+
 def test_max_sharpe_falls_back_when_cap_blocks_every_beat_of_cash():
     """Only 2 of 10 assets beat cash and a 15% cap forces money into losers: must not raise."""
     names = [f"S{i}" for i in range(10)]
