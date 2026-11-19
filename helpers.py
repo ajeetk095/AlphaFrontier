@@ -17,39 +17,102 @@ REPORT_WINDOWS = {
 
 CSS = """
 <style>
-.block-container{padding-top:2rem;max-width:1200px}
-div[data-testid='stMetricValue']{font-size:1.55rem}
-.pl-hero{padding:1.4rem 1.6rem;border-radius:16px;background:linear-gradient(135deg,rgba(37,99,235,.18),rgba(16,185,129,.14));
-  border:1px solid rgba(128,128,128,.25);margin-bottom:1rem}
-.pl-hero h1{margin:0 0 .3rem 0}
-.pl-card{padding:1rem 1.1rem;border-radius:14px;border:1px solid rgba(128,128,128,.25);background:rgba(128,128,128,.07);height:100%}
-.pl-pill{display:inline-block;padding:.1rem .6rem;border-radius:999px;font-size:.8rem;border:1px solid rgba(128,128,128,.35);margin-right:.3rem}
+.block-container{padding-top:2rem;padding-bottom:3rem;max-width:1280px}
+[data-testid="stMetricValue"]{font-size:1.55rem;font-weight:700}
+.pl-hero{position:relative;overflow:hidden;padding:1.7rem 1.8rem;border-radius:22px;
+  background:linear-gradient(120deg,rgba(14,165,233,.20),rgba(99,102,241,.18) 52%,rgba(16,185,129,.16));
+  border:1px solid rgba(99,102,241,.28);margin:0 0 1.35rem;box-shadow:0 14px 40px rgba(15,23,42,.08)}
+.pl-hero:after{content:"";position:absolute;width:220px;height:220px;right:-70px;top:-110px;border-radius:50%;
+  background:radial-gradient(circle,rgba(56,189,248,.26),transparent 70%);pointer-events:none}
+.pl-hero h1{margin:0 0 .45rem;font-size:clamp(2rem,4vw,3rem);letter-spacing:-.04em}
+.pl-hero b{font-size:1.04rem}
+.pl-card{padding:1.1rem 1.15rem;border-radius:17px;border:1px solid rgba(99,102,241,.22);
+  background:linear-gradient(145deg,rgba(99,102,241,.10),rgba(14,165,233,.055));height:100%;
+  line-height:1.55;box-shadow:0 8px 24px rgba(15,23,42,.055);transition:transform .18s ease,border-color .18s ease}
+.pl-card:hover{transform:translateY(-3px);border-color:rgba(14,165,233,.52)}
+.pl-card b{font-size:1.02rem}
+.pl-pill{display:inline-block;padding:.18rem .68rem;border-radius:999px;font-size:.8rem;border:1px solid rgba(99,102,241,.35);margin-right:.3rem}
+[data-testid="stMetric"]{padding:.8rem 1rem;border-radius:16px;border:1px solid rgba(99,102,241,.17);
+  background:linear-gradient(145deg,rgba(99,102,241,.075),rgba(14,165,233,.045))}
+[data-testid="stMetricLabel"]{font-weight:600}
+[data-testid="stTabs"] button{font-weight:600}
+[data-testid="stDataFrame"], [data-testid="stTable"]{border-radius:12px;overflow:hidden}
+[data-testid="stExpander"]{border-radius:14px}
+.stButton button,.stDownloadButton button,.stLinkButton a,[data-testid="stPageLink"] a{
+  border-radius:11px!important;font-weight:650!important;transition:all .18s ease!important}
+.stButton button:hover,.stDownloadButton button:hover,.stLinkButton a:hover,[data-testid="stPageLink"] a:hover{
+  transform:translateY(-1px);border-color:#38bdf8!important;box-shadow:0 5px 16px rgba(14,165,233,.18)!important}
+[data-testid="stSidebar"]{border-right:1px solid rgba(99,102,241,.15)}
+[data-testid="stHeader"]{backdrop-filter:blur(12px)}
+@media (max-width:700px){.pl-hero{padding:1.25rem;border-radius:17px}.pl-card{margin-bottom:.4rem}}
 </style>
 """
 
 LIGHT_THEME_CSS = """
 <style>
-.stApp{background-color:#ffffff;color:#262730}
-[data-testid="stSidebar"]{background-color:#f0f2f6}
-[data-testid="stHeader"]{background-color:rgba(255,255,255,.9)}
-.stApp :is(h1,h2,h3,h4,h5,h6,p,li,label,small,.stMarkdown,.stCaption){color:#262730}
-.stApp a{color:#2563eb}
-.stApp input,.stApp textarea,[data-baseweb="select"]>div,[data-baseweb="input"]>div{background-color:#ffffff;color:#262730}
-[data-testid="stExpander"],[data-testid="stAlert"]{background-color:#ffffff}
+.stApp{background:radial-gradient(ellipse at 5% 0%,rgba(14,165,233,.075),transparent 34%),
+  radial-gradient(ellipse at 95% 8%,rgba(139,92,246,.07),transparent 30%),#f7f9ff;color:#172033}
+[data-testid="stAppViewContainer"]{background:transparent}
+[data-testid="stSidebar"]{background:linear-gradient(180deg,#f0f5ff 0%,#f8f7ff 55%,#f0fbfa 100%);color:#172033}
+[data-testid="stHeader"]{background:rgba(247,249,255,.82)}
+.stApp :is(h1,h2,h3,h4,h5,h6,p,li,label,small,.stMarkdown,.stCaption,[data-testid="stMarkdownContainer"]){color:#172033}
+.stApp [data-testid="stCaptionContainer"],.stApp .stCaption{color:#53627a}
+.stApp a{color:#4f46e5}
+.stApp a:hover{color:#0284c7}
+.stApp input,.stApp textarea,[data-baseweb="select"]>div,[data-baseweb="input"]>div{
+  background:#fff!important;color:#172033!important;border-color:#cbd5e1!important;border-radius:10px!important}
+.stApp input::placeholder,.stApp textarea::placeholder{color:#64748b!important}
+.stApp [role="listbox"],.stApp [role="option"]{background:#fff;color:#172033}
+.stApp [data-testid="stExpander"],.stApp [data-testid="stAlert"]{background:rgba(255,255,255,.82);border-color:#dbe4f0;color:#172033}
+.stApp [data-testid="stAlert"] :is(p,span){color:inherit}
+.stApp [data-testid="stMetricLabel"]{color:#53627a}
+.stApp [data-testid="stMetricValue"]{color:#312e81}
+.stApp [data-testid="stMetricDelta"]{color:#047857}
+.stApp .stButton button,.stApp .stDownloadButton button,.stApp .stLinkButton a,.stApp [data-testid="stPageLink"] a{
+  background:linear-gradient(135deg,#4f46e5,#2563eb)!important;color:#fff!important;border:1px solid #4f46e5!important}
+.stApp .stButton button *, .stApp .stDownloadButton button *,.stApp .stLinkButton a *{color:#fff!important}
+.stApp [data-testid="stPageLink"] a{display:inline-flex}
+.stApp [data-testid="stTabs"] button{color:#53627a}
+.stApp [data-testid="stTabs"] button[aria-selected="true"]{color:#4338ca;border-color:#6366f1}
+.stApp [data-testid="stDataFrame"],.stApp [data-testid="stTable"]{background:#fff}
+.stApp [data-testid="stPlotlyChart"]{background:transparent}
+.stApp hr{border-color:#dbe4f0}
 </style>
 """
 
 DARK_THEME_CSS = """
 <style>
-.stApp{background-color:#0e1117;color:#fafafa}
-[data-testid="stSidebar"]{background-color:#161b22}
-[data-testid="stHeader"]{background-color:rgba(14,17,23,.9)}
-.stApp :is(h1,h2,h3,h4,h5,h6,p,li,label,small,.stMarkdown,.stCaption){color:#fafafa}
-.stApp a{color:#79aaff}
-.stApp input,.stApp textarea,[data-baseweb="select"]>div,[data-baseweb="input"]>div{background-color:#222831;color:#fafafa}
-[data-testid="stExpander"],[data-testid="stAlert"]{background-color:#161b22;color:#fafafa}
-[data-testid="stMetric"]{background-color:rgba(255,255,255,.04);border-radius:8px;padding:.5rem}
-[data-testid="stPlotlyChart"]{background-color:transparent}
+.stApp{background:radial-gradient(ellipse at 5% 0%,rgba(14,165,233,.13),transparent 35%),
+  radial-gradient(ellipse at 95% 10%,rgba(139,92,246,.13),transparent 32%),#0b1020;color:#e6edf7}
+[data-testid="stAppViewContainer"]{background:transparent}
+[data-testid="stSidebar"]{background:linear-gradient(180deg,#101a31 0%,#17152f 58%,#102427 100%);color:#e6edf7;border-right:1px solid rgba(129,140,248,.18)}
+[data-testid="stHeader"]{background:rgba(11,16,32,.78)}
+.stApp :is(h1,h2,h3,h4,h5,h6,p,li,label,small,.stMarkdown,.stCaption,[data-testid="stMarkdownContainer"]){color:#e6edf7}
+.stApp [data-testid="stCaptionContainer"],.stApp .stCaption{color:#aab8cf}
+.stApp a{color:#7dd3fc}
+.stApp a:hover{color:#c4b5fd}
+.stApp input,.stApp textarea,[data-baseweb="select"]>div,[data-baseweb="input"]>div{
+  background:#172238!important;color:#f1f5f9!important;border-color:#34435e!important;border-radius:10px!important}
+.stApp input::placeholder,.stApp textarea::placeholder{color:#94a3b8!important}
+.stApp [role="listbox"],.stApp [role="option"]{background:#172238;color:#f1f5f9}
+.stApp [data-testid="stExpander"],.stApp [data-testid="stAlert"]{background:rgba(23,34,56,.88);border-color:#34435e;color:#e6edf7}
+.stApp [data-testid="stAlert"] :is(p,span){color:inherit}
+.stApp [data-testid="stMetric"]{background:linear-gradient(145deg,rgba(99,102,241,.17),rgba(14,165,233,.09));border-color:rgba(129,140,248,.28)}
+.stApp [data-testid="stMetricLabel"]{color:#b8c5d9}
+.stApp [data-testid="stMetricValue"]{color:#c4b5fd}
+.stApp [data-testid="stMetricDelta"]{color:#6ee7b7}
+.stApp .pl-hero{background:linear-gradient(120deg,rgba(14,165,233,.20),rgba(99,102,241,.25) 52%,rgba(16,185,129,.16));border-color:rgba(129,140,248,.35);box-shadow:0 14px 40px rgba(0,0,0,.2)}
+.stApp .pl-card{background:linear-gradient(145deg,rgba(99,102,241,.17),rgba(14,165,233,.08));border-color:rgba(129,140,248,.25);box-shadow:0 8px 24px rgba(0,0,0,.16)}
+.stApp .pl-pill{border-color:rgba(129,140,248,.42);color:#dbeafe}
+.stApp .stButton button,.stApp .stDownloadButton button,.stApp .stLinkButton a,.stApp [data-testid="stPageLink"] a{
+  background:linear-gradient(135deg,#6366f1,#0284c7)!important;color:#fff!important;border:1px solid #818cf8!important}
+.stApp .stButton button *, .stApp .stDownloadButton button *,.stApp .stLinkButton a *{color:#fff!important}
+.stApp [data-testid="stPageLink"] a{display:inline-flex}
+.stApp [data-testid="stTabs"] button{color:#aab8cf}
+.stApp [data-testid="stTabs"] button[aria-selected="true"]{color:#c4b5fd;border-color:#818cf8}
+.stApp [data-testid="stDataFrame"],.stApp [data-testid="stTable"]{background:#111a2d}
+.stApp [data-testid="stPlotlyChart"]{background:transparent}
+.stApp hr{border-color:#293750}
 </style>
 """
 
